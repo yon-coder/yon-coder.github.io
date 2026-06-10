@@ -1,58 +1,64 @@
 /**
- * portfolio/script.js
+ * script.js — Portfólio Rafael Mastrocinque (yon-coder)
  * Módulos: ThemeManager | TypewriterEffect | ScrollReveal | NavBehavior | ContactForm
  */
 
-/* ─── 1. Theme Manager ───────────────────────────────────── */
+'use strict';
+
+/* ═══════════════════════════════════════════════════════════
+   1. THEME MANAGER
+   Persiste preferência no localStorage; fallback ao sistema.
+   ═══════════════════════════════════════════════════════════ */
 const ThemeManager = (() => {
-  const KEY = 'portfolio-theme';
-  const root = document.documentElement;
-  const toggle = document.getElementById('themeToggle');
+  const STORAGE_KEY = 'rafael-portfolio-theme';
+  const DARK  = 'dark';
+  const LIGHT = 'light';
+  const root  = document.documentElement;
+  const btn   = document.getElementById('themeToggle');
 
-  const THEMES = { DARK: 'dark', LIGHT: 'light' };
-
-  const getSystemPref = () =>
-    window.matchMedia('(prefers-color-scheme: light)').matches
-      ? THEMES.LIGHT
-      : THEMES.DARK;
-
-  const getSaved = () => localStorage.getItem(KEY);
+  const getSystem = () =>
+    window.matchMedia('(prefers-color-scheme: light)').matches ? LIGHT : DARK;
 
   const apply = (theme) => {
     root.setAttribute('data-theme', theme);
-    localStorage.setItem(KEY, theme);
+    localStorage.setItem(STORAGE_KEY, theme);
   };
 
-  const toggle_ = () => {
+  const toggle = () => {
     const current = root.getAttribute('data-theme');
-    apply(current === THEMES.DARK ? THEMES.LIGHT : THEMES.DARK);
+    apply(current === DARK ? LIGHT : DARK);
   };
 
   const init = () => {
-    apply(getSaved() || getSystemPref());
-    toggle?.addEventListener('click', toggle_);
+    apply(localStorage.getItem(STORAGE_KEY) ?? getSystem());
+    btn?.addEventListener('click', toggle);
   };
 
   return { init };
 })();
 
 
-/* ─── 2. Typewriter Effect ───────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   2. TYPEWRITER EFFECT
+   Digita e apaga frases em loop com velocidades distintas.
+   ═══════════════════════════════════════════════════════════ */
 const TypewriterEffect = (() => {
   const PHRASES = [
-    'Front-End Developer',
-    'Estudante de TI',
-    'Apaixonado por código',
-    'Buscando estágio 🚀',
+    'Desenvolvedor Full Stack',
+    'Python Developer',
+    'Aspirante a Cibersegurança',
+    'Estudante ENIAC · 3º Técnico',
+    'Automação & Scripts',
   ];
+
+  const TYPE_SPEED   = 88;
+  const DELETE_SPEED = 48;
+  const PAUSE_AFTER  = 1900;
+  const PAUSE_BEFORE = 340;
 
   let phraseIdx = 0;
   let charIdx   = 0;
   let deleting  = false;
-  const TYPING_SPEED  = 90;
-  const DELETE_SPEED  = 50;
-  const PAUSE_END     = 1800;
-  const PAUSE_START   = 350;
 
   const el = document.getElementById('typewriterText');
 
@@ -66,17 +72,17 @@ const TypewriterEffect = (() => {
       charIdx++;
       if (charIdx === phrase.length) {
         deleting = true;
-        setTimeout(tick, PAUSE_END);
+        setTimeout(tick, PAUSE_AFTER);
         return;
       }
-      setTimeout(tick, TYPING_SPEED);
+      setTimeout(tick, TYPE_SPEED);
     } else {
       el.textContent = phrase.slice(0, charIdx - 1);
       charIdx--;
       if (charIdx === 0) {
-        deleting = false;
+        deleting  = false;
         phraseIdx = (phraseIdx + 1) % PHRASES.length;
-        setTimeout(tick, PAUSE_START);
+        setTimeout(tick, PAUSE_BEFORE);
         return;
       }
       setTimeout(tick, DELETE_SPEED);
@@ -89,37 +95,42 @@ const TypewriterEffect = (() => {
 })();
 
 
-/* ─── 3. Scroll Reveal (Intersection Observer) ───────────── */
+/* ═══════════════════════════════════════════════════════════
+   3. SCROLL REVEAL
+   Intersection Observer com stagger por ordem no pai.
+   ═══════════════════════════════════════════════════════════ */
 const ScrollReveal = (() => {
   const OPTIONS = {
     root: null,
-    rootMargin: '0px 0px -60px 0px',
-    threshold: 0.12,
+    rootMargin: '0px 0px -55px 0px',
+    threshold: 0.11,
   };
 
-  const callback = (entries, observer) => {
+  const onIntersect = (entries, observer) => {
     entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        // Stagger children inside the same parent
-        const siblings = Array.from(
-          entry.target.parentElement?.querySelectorAll('.reveal') ?? []
-        );
-        const idx = siblings.indexOf(entry.target);
-        entry.target.style.transitionDelay = `${idx * 80}ms`;
-        entry.target.classList.add('visible');
-        observer.unobserve(entry.target);
-      }
+      if (!entry.isIntersecting) return;
+
+      // Stagger baseado na posição entre irmãos .reveal
+      const siblings = Array.from(
+        entry.target.parentElement?.querySelectorAll('.reveal') ?? []
+      );
+      const idx = siblings.indexOf(entry.target);
+      entry.target.style.transitionDelay = `${idx * 75}ms`;
+      entry.target.classList.add('visible');
+      observer.unobserve(entry.target);
     });
   };
 
   const init = () => {
     const targets = document.querySelectorAll('.reveal');
+
+    // Fallback para browsers sem suporte
     if (!('IntersectionObserver' in window)) {
-      // Fallback: show everything immediately
       targets.forEach((el) => el.classList.add('visible'));
       return;
     }
-    const observer = new IntersectionObserver(callback, OPTIONS);
+
+    const observer = new IntersectionObserver(onIntersect, OPTIONS);
     targets.forEach((el) => observer.observe(el));
   };
 
@@ -127,21 +138,23 @@ const ScrollReveal = (() => {
 })();
 
 
-/* ─── 4. Nav Behavior ────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   4. NAV BEHAVIOR
+   Header glassmorphism ao scroll + menu mobile clip-path.
+   ═══════════════════════════════════════════════════════════ */
 const NavBehavior = (() => {
-  const header = document.getElementById('header');
-  const burger = document.getElementById('navBurger');
+  const header  = document.getElementById('header');
+  const burger  = document.getElementById('navBurger');
   const navList = document.getElementById('navList');
-  const navLinks = document.querySelectorAll('.nav__link');
+  const links   = document.querySelectorAll('.nav__link');
 
-  const handleScroll = () => {
-    header?.classList.toggle('scrolled', window.scrollY > 20);
-  };
+  const onScroll = () =>
+    header?.classList.toggle('scrolled', window.scrollY > 18);
 
-  const toggleMenu = () => {
-    const open = navList?.classList.toggle('open');
-    burger?.classList.toggle('open', open);
-    document.body.style.overflow = open ? 'hidden' : '';
+  const openMenu = () => {
+    navList?.classList.add('open');
+    burger?.classList.add('open');
+    document.body.style.overflow = 'hidden';
   };
 
   const closeMenu = () => {
@@ -150,93 +163,109 @@ const NavBehavior = (() => {
     document.body.style.overflow = '';
   };
 
+  const toggleMenu = () =>
+    navList?.classList.contains('open') ? closeMenu() : openMenu();
+
   const init = () => {
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll(); // run once on load
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll(); // estado inicial
+
     burger?.addEventListener('click', toggleMenu);
-    navLinks.forEach((link) => link.addEventListener('click', closeMenu));
+    links.forEach((l) => l.addEventListener('click', closeMenu));
   };
 
   return { init };
 })();
 
 
-/* ─── 5. Contact Form Validation ─────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   5. CONTACT FORM
+   Validação em tempo real + simulação de envio assíncrono.
+   ═══════════════════════════════════════════════════════════ */
 const ContactForm = (() => {
-  const VALIDATORS = {
-    name: (v) =>
-      v.trim().length < 2 ? 'Por favor, insira seu nome completo.' : '',
-    email: (v) =>
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
-        ? ''
-        : 'Insira um e-mail válido.',
-    message: (v) =>
-      v.trim().length < 15 ? 'Sua mensagem deve ter ao menos 15 caracteres.' : '',
+  /* Regras de validação por campo */
+  const RULES = {
+    name:    (v) => v.trim().length < 2
+                    ? 'Por favor, informe seu nome completo.'
+                    : '',
+    email:   (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
+                    ? ''
+                    : 'Insira um endereço de e-mail válido.',
+    message: (v) => v.trim().length < 15
+                    ? 'Sua mensagem deve ter pelo menos 15 caracteres.'
+                    : '',
   };
 
-  const getField = (id) => document.getElementById(id);
-  const getError = (id) => document.getElementById(`${id}Error`);
+  const field = (id)  => document.getElementById(id);
+  const error = (id)  => document.getElementById(`${id}Error`);
 
-  const validate = (id) => {
-    const field  = getField(id);
-    const error  = getError(id);
-    if (!field || !error) return true;
+  /* Valida um campo e exibe/limpa a mensagem de erro */
+  const validateField = (id) => {
+    const el  = field(id);
+    const err = error(id);
+    if (!el || !err) return true;
 
-    const msg = VALIDATORS[id]?.(field.value) ?? '';
-    error.textContent = msg;
-    field.classList.toggle('error', !!msg);
+    const msg = RULES[id]?.(el.value) ?? '';
+    err.textContent = msg;
+    el.classList.toggle('error', !!msg);
     return !msg;
   };
 
+  /* Valida todos os campos e retorna true se tudo OK */
   const validateAll = () =>
-    ['name', 'email', 'message'].map(validate).every(Boolean);
+    ['name', 'email', 'message'].map(validateField).every(Boolean);
 
-  // Live validation on blur
-  const attachLiveValidation = () => {
+  /* Valida ao perder foco e limpa erro ao corrigir */
+  const bindLiveValidation = () => {
     ['name', 'email', 'message'].forEach((id) => {
-      getField(id)?.addEventListener('blur', () => validate(id));
-      getField(id)?.addEventListener('input', () => {
-        if (getField(id)?.classList.contains('error')) validate(id);
+      field(id)?.addEventListener('blur', () => validateField(id));
+      field(id)?.addEventListener('input', () => {
+        if (field(id)?.classList.contains('error')) validateField(id);
       });
     });
   };
 
-  const simulateSend = () =>
+  /* Simula requisição ao servidor (1.4s) */
+  const fakeRequest = () =>
     new Promise((resolve) => setTimeout(resolve, 1400));
 
-  const showSuccess = (msg) => {
+  const setSuccess = (msg) => {
     const el = document.getElementById('formSuccess');
     if (el) el.textContent = msg;
+  };
+
+  const resetForm = (form) => {
+    form.reset();
+    ['name', 'email', 'message'].forEach((id) => {
+      field(id)?.classList.remove('error');
+      const err = error(id);
+      if (err) err.textContent = '';
+    });
   };
 
   const init = () => {
     const form = document.getElementById('contactForm');
     if (!form) return;
 
-    attachLiveValidation();
+    bindLiveValidation();
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      showSuccess('');
+      setSuccess('');
 
       if (!validateAll()) return;
 
-      const btn = form.querySelector('button[type="submit"]');
-      btn?.classList.add('loading');
+      const submitBtn = form.querySelector('button[type="submit"]');
+      submitBtn?.classList.add('loading');
 
       try {
-        await simulateSend();
-        showSuccess('✓ Mensagem enviada com sucesso! Em breve entrarei em contato.');
-        form.reset();
-        ['name', 'email', 'message'].forEach((id) => {
-          getField(id)?.classList.remove('error');
-          const err = getError(id);
-          if (err) err.textContent = '';
-        });
+        await fakeRequest();
+        setSuccess('✓ Mensagem enviada! Rafael entrará em contato em breve.');
+        resetForm(form);
       } catch {
-        showSuccess('Ops! Algo deu errado. Tente novamente.');
+        setSuccess('Ops! Algo deu errado. Tente novamente mais tarde.');
       } finally {
-        btn?.classList.remove('loading');
+        submitBtn?.classList.remove('loading');
       }
     });
   };
@@ -245,7 +274,9 @@ const ContactForm = (() => {
 })();
 
 
-/* ─── 6. Bootstrap ───────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   BOOTSTRAP — inicializa todos os módulos após o DOM carregar
+   ═══════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
   ThemeManager.init();
   TypewriterEffect.init();
