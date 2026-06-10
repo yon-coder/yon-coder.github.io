@@ -225,9 +225,16 @@ const ContactForm = (() => {
     });
   };
 
-  /* Simula requisição ao servidor (1.4s) */
-  const fakeRequest = () =>
-    new Promise((resolve) => setTimeout(resolve, 1400));
+  /* Envia via mailto para andaime540@gmail.com */
+  const sendEmail = (name, email, message) => {
+    const subject = encodeURIComponent(`Contato do Portfólio — ${name}`);
+    const body = encodeURIComponent(
+      `Nome: ${name}\nE-mail: ${email}\n\nMensagem:\n${message}`
+    );
+    window.location.href =
+      `mailto:andaime540@gmail.com?subject=${subject}&body=${body}`;
+    return new Promise((resolve) => setTimeout(resolve, 600));
+  };
 
   const setSuccess = (msg) => {
     const el = document.getElementById('formSuccess');
@@ -259,8 +266,12 @@ const ContactForm = (() => {
       submitBtn?.classList.add('loading');
 
       try {
-        await fakeRequest();
-        setSuccess('✓ Mensagem enviada! Rafael entrará em contato em breve.');
+        await sendEmail(
+          field('name').value,
+          field('email').value,
+          field('message').value
+        );
+        setSuccess('✓ Seu cliente de e-mail foi aberto! Rafael responderá em breve.');
         resetForm(form);
       } catch {
         setSuccess('Ops! Algo deu errado. Tente novamente mais tarde.');
